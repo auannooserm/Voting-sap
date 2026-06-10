@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ระบบโหวตออนไลน์</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: #e4e2dc;
+    --text: #1a1a18;
+    --muted: #7a7872;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --accent-mid: #bfcfef;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --danger: #dc2626;
+    --danger-light: #fef2f2;
+    --warning: #d97706;
+    --warning-light: #fffbeb;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 8px; }
+  .topbar-title { font-size: 15px; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+  /* ── Shell ── */
+  .shell { max-width: 480px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* ── Tab nav ── */
+  .tab-nav {
+    display: flex; gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    flex: 1; padding: 9px 0;
+    border: none; border-radius: var(--radius-sm);
+    background: transparent; color: var(--muted);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+    font-family: inherit;
+  }
+  .tab-btn.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+  }
+  .badge-green { background: var(--success-light); color: var(--success); }
+  .badge-red   { background: var(--danger-light);  color: var(--danger); }
+  .badge-blue  { background: var(--accent-light);  color: var(--accent); }
+  .badge-amber { background: var(--warning-light); color: var(--warning); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .dot.pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d51c8; }
+  .btn-danger  { background: var(--danger-light); color: var(--danger); border-color: #fca5a5; }
+  .btn-danger:hover { background: #fee2e2; }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+  .btn-icon { padding: 8px 12px; border-radius: var(--radius-sm); }
+
+  /* ── Forms ── */
+  label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 5px; }
+  input[type=text], input[type=password] {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-family: inherit;
+    background: var(--bg); color: var(--text);
+    transition: border-color .15s;
+    margin-bottom: 12px;
+  }
+  input[type=text]:focus, input[type=password]:focus {
+    outline: none; border-color: var(--accent); background: var(--surface);
+  }
+  input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+  /* ── Choice items ── */
+  .choice-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 9px;
+    cursor: pointer; transition: all .15s;
+    background: var(--surface);
+  }
+  .choice-item:hover { border-color: var(--accent-mid); background: var(--accent-light); }
+  .choice-item.selected { border-color: var(--accent); background: var(--accent-light); }
+  .choice-item.disabled { cursor: not-allowed; opacity: .6; }
+  .radio-circle {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .choice-item.selected .radio-circle { border-color: var(--accent); background: var(--accent); }
+  .radio-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; display: none; }
+  .choice-item.selected .radio-dot { display: block; }
+
+  /* ── Result bars ── */
+  .result-row { margin-bottom: 14px; }
+  .result-meta { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+  .result-name { font-weight: 500; }
+  .result-count { color: var(--muted); }
+  .bar-track { background: var(--bg); border-radius: 4px; height: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 10px; border-radius: 3px; background: var(--accent); transition: width .6s cubic-bezier(.4,0,.2,1); }
+  .bar-fill.lead { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
+
+  /* ── Stat grid ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--bg); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Admin option tag ── */
+  .opt-tag {
+    display: flex; align-items: center;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px; margin-bottom: 7px; font-size: 13px;
+  }
+  .opt-tag span { flex: 1; }
+  .opt-tag button { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
+  .opt-tag button:hover { color: var(--danger); }
+
+  /* ── Center block ── */
+  .center-block { text-align: center; padding: 24px 0 16px; }
+  .big-icon { font-size: 48px; margin-bottom: 10px; }
+  .center-block h2 { font-size: 18px; margin-bottom: 6px; }
+  .center-block p { font-size: 13px; color: var(--muted); }
+
+  /* ── Timer ── */
+  .timer-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--warning-light); color: var(--warning);
+    border: 1px solid #fde68a;
+    border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 600;
+  }
+  .timer-pill.urgent { background: var(--danger-light); color: var(--danger); border-color: #fca5a5; animation: pulse 1s infinite; }
+
+  /* ── Section head ── */
+  .section-head { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+
+  /* ── Info box ── */
+  .info-box { background: var(--accent-light); border: 1px solid var(--accent-mid); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--accent); margin-bottom: 12px; line-height: 1.6; }
+  .warn-box { background: var(--warning-light); border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--warning); margin-bottom: 12px; }
+
+  /* ── Admin login modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%; max-width: 340px;
+    margin: 16px;
+    border: 1px solid var(--border);
+  }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .error-msg { font-size: 13px; color: var(--danger); background: var(--danger-light); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 10px; display: none; }
+
+  /* ── Misc ── */
+  .row { display: flex; align-items: center; gap: 8px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .connecting { text-align: center; padding: 40px 0; color: var(--muted); font-size: 14px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 8px; vertical-align: -4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: #fff;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    transition: transform .3s; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<div class="topbar">
+  <div class="topbar-left">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span class="topbar-title">ระบบโหวตออนไลน์</span>
+  </div>
+  <div class="topbar-right">
+    <span id="top-badge" class="badge badge-amber"><span class="dot"></span>กำลังเชื่อมต่อ</span>
+    <button id="admin-login-btn" class="btn btn-icon" title="Admin" onclick="showAdminLogin()" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    </button>
+    <button id="admin-logout-btn" class="btn btn-icon" title="ออกจากระบบ Admin" onclick="adminLogout()" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ── Main shell ── -->
+<div class="shell">
+  <div id="connecting-view" class="connecting">
+    <span class="spinner"></span>กำลังเชื่อมต่อ Firebase...
+  </div>
+
+  <div id="main-content" style="display:none">
+    <!-- Tab nav — user sees only 2 tabs; admin sees 3 -->
+    <div class="tab-nav">
+      <button class="tab-btn active" id="nb-voter"  onclick="showPage('voter')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>โหวต
+      </button>
+      <button class="tab-btn" id="nb-result" onclick="showPage('result')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>ผลโหวต
+      </button>
+      <button class="tab-btn" id="nb-admin" onclick="showPage('admin')" style="display:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 21 12"/></svg>Admin
+      </button>
+    </div>
+
+    <!-- ─── VOTER PAGE ─── -->
+    <div id="page-voter" class="page active">
+      <div id="vote-main-card" class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <span id="voter-status-badge" class="badge badge-red"><span class="dot"></span>ยังไม่เปิดโหวต</span>
+          <span id="timer-pill" class="timer-pill" style="display:none">
+            ⏱ <span id="timer-text">--:--</span>
+          </span>
+        </div>
+        <h2 id="question-display" style="font-size:17px;font-weight:600;margin-bottom:6px">กำลังโหลด...</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">เลือก 1 ตัวเลือก</p>
+        <div id="choices-container"></div>
+        <button class="btn btn-primary btn-full" style="margin-top:6px" onclick="submitVote()" id="vote-btn" disabled>
+          ✓ ยืนยันโหวต
+        </button>
+      </div>
+      <div id="voted-card" class="card" style="display:none">
+        <div class="center-block">
+          <div class="big-icon">✅</div>
+          <h2>โหวตสำเร็จแล้ว!</h2>
+          <p id="voted-choice-text"></p>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="showPage('result')">ดูผลโหวต →</button>
+        </div>
+      </div>
+      <div id="closed-card" class="card" style="display:none">
+        <div class="center-block">
+          <div class="big-icon">🔒</div>
+          <h2>การโหวตปิดแล้ว</h2>
+          <p>ขอบคุณสำหรับการมีส่วนร่วม</p>
+          <button class="btn" style="margin-top:16px" onclick="showPage('result')">ดูผลโหวต →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── RESULT PAGE ─── -->
+    <div id="page-result" class="page">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <h2 style="font-size:16px;font-weight:600">ผลการโหวต</h2>
+          <span id="result-live-badge" class="badge badge-amber"><span class="dot pulse"></span>Live</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">ผู้โหวต</div></div>
+          <div class="stat"><div class="stat-num" id="stat-leader" style="font-size:13px;font-weight:600">—</div><div class="stat-lbl">นำโด่ง</div></div>
+          <div class="stat"><div class="stat-num" id="stat-time" style="font-size:16px">--:--</div><div class="stat-lbl">เวลาเหลือ</div></div>
+        </div>
+        <div id="result-bars"></div>
+        <p id="no-votes-msg" style="text-align:center;color:var(--muted);font-size:13px;padding:10px 0">ยังไม่มีผู้โหวต</p>
+      </div>
+    </div>
+
+    <!-- ─── ADMIN PAGE ─── -->
+    <div id="page-admin" class="page">
+      <div class="card">
+        <div class="section-head">ตั้งค่าคำถาม</div>
+        <label>ข้อความคำถาม</label>
+        <input type="text" id="admin-question" placeholder="พิมพ์คำถาม..."/>
+
+        <label>ตัวเลือก</label>
+        <div id="options-list"></div>
+        <div class="row" style="margin-bottom:4px">
+          <input type="text" id="new-option" placeholder="พิมพ์ตัวเลือกใหม่..." style="margin:0;flex:1" onkeydown="if(event.key==='Enter')addOption()"/>
+          <button class="btn btn-primary" onclick="addOption()" style="padding:9px 14px;flex-shrink:0">+ เพิ่ม</button>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-head">เวลาโหวต</div>
+        <label>ระยะเวลา: <strong id="duration-val">5</strong> นาที</label>
+        <input type="range" min="1" max="60" value="5" id="duration-slider" step="1"
+          oninput="document.getElementById('duration-val').textContent=this.value"/>
+
+        <div class="divider"></div>
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <button class="btn btn-primary" style="flex:1;min-width:140px" onclick="applyAndStart()" id="start-btn">▶ เริ่มโหวต</button>
+          <button class="btn btn-danger" onclick="stopVoting()" id="stop-btn" style="display:none;flex:1;min-width:140px">■ หยุดโหวต</button>
+          <button class="btn" onclick="resetAll()" title="รีเซ็ตทั้งหมด" style="padding:9px 12px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          </button>
+        </div>
+        <div id="admin-msg" style="font-size:13px;min-height:18px;margin-top:8px;color:var(--success)"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">รหัสผ่าน Admin</div>
+        <div class="info-box">เปลี่ยนรหัสผ่านได้ในโค้ดบรรทัด <code>ADMIN_PASSWORD</code></div>
+        <div class="warn-box">⚠️ ระบบนี้เป็น HTML ไฟล์เดียว รหัสผ่านอยู่ในโค้ด — เหมาะสำหรับงาน Event เท่านั้น</div>
+        <button class="btn btn-danger" style="font-size:13px" onclick="adminLogout()">ออกจากระบบ Admin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Admin Login Modal ── -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <div class="modal-title">Admin Login</div>
+    </div>
+    <div class="modal-sub">กรุณาใส่รหัสผ่านเพื่อเข้าจัดการระบบ</div>
+    <div class="error-msg" id="login-error">รหัสผ่านไม่ถูกต้อง</div>
+    <label>รหัสผ่าน</label>
+    <input type="password" id="admin-password-input" placeholder="ใส่รหัสผ่าน..."
+      onkeydown="if(event.key==='Enter')checkAdminPassword()"/>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:4px">
+      <button class="btn" onclick="closeAdminModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="checkAdminPassword()">เข้าสู่ระบบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ── Firebase SDK ── -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ════════════════════════════════════════════
+//  🔑 Firebase Config
+// ════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyC_AHNf_oRZ08m7gyjVyAo3jF3wotaLV1c",
+  authDomain: "sap-vote.firebaseapp.com",
+  databaseURL: "https://sap-vote-default-rtdb.firebaseio.com",
+  projectId: "sap-vote",
+  storageBucket: "sap-vote.firebasestorage.app",
+  messagingSenderId: "377408911688",
+  appId: "1:377408911688:web:81e1764675c58697e19b7d",
+  measurementId: "G-Y64D0LFFLP"
+};
+
+// ════════════════════════════════════════════
+//  🔐 Admin Password — เปลี่ยนตรงนี้ได้เลย
+// ════════════════════════════════════════════
+const ADMIN_PASSWORD = "admin1234";
+
+// ════════════════════════════════════════════
+//  Firebase Init
+// ════════════════════════════════════════════
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── Keys ──
+const VOTED_KEY  = 'sap_vote_record_v1';
+const DEVICE_KEY = 'sap_vote_device_v1';
+const ADMIN_KEY  = 'sap_vote_admin_v1';
+
+// ── Device ID ──
+let deviceId = localStorage.getItem(DEVICE_KEY);
+if (!deviceId) {
+  deviceId = 'D-' + Math.random().toString(36).slice(2,10).toUpperCase();
+  localStorage.setItem(DEVICE_KEY, deviceId);
+}
+
+// ── Local state (synced from Firebase) ──
+let voteData = { question: '', options: [], votes: {}, isOpen: false, endTime: null };
+let timerInterval = null;
+let isAdmin = sessionStorage.getItem(ADMIN_KEY) === '1';
+
+// ── Expose functions to global for onclick ──
+window.showPage         = showPage;
+window.submitVote       = submitVote;
+window.showAdminLogin   = showAdminLogin;
+window.closeAdminModal  = closeAdminModal;
+window.checkAdminPassword = checkAdminPassword;
+window.adminLogout      = adminLogout;
+window.addOption        = addOption;
+window.removeOption     = removeOption;
+window.applyAndStart    = applyAndStart;
+window.stopVoting       = stopVoting;
+window.resetAll         = resetAll;
+
+// ════════════════════════════════════════════
+//  Firebase Listener — real-time sync
+// ════════════════════════════════════════════
+function initFirebase() {
+  const voteRef = ref(db, 'vote');
+  onValue(voteRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      voteData = {
+        question: data.question || '',
+        options:  data.options  || [],
+        votes:    data.votes    || {},
+        isOpen:   data.isOpen   || false,
+        endTime:  data.endTime  || null,
+      };
+    } else {
+      // first time — seed empty data
+      voteData = { question: 'ตั้งคำถามใน Admin', options: [], votes: {}, isOpen: false, endTime: null };
+    }
+    onDataUpdated();
+  }, (err) => {
+    showToast('❌ เชื่อมต่อ Firebase ไม่ได้: ' + err.message);
+  });
+
+  document.getElementById('connecting-view').style.display = 'none';
+  document.getElementById('main-content').style.display = 'block';
+  document.getElementById('admin-login-btn').style.display = 'flex';
+  applyAdminUI();
+}
+
+function onDataUpdated() {
+  const page = document.querySelector('.page.active');
+  const id   = page ? page.id.replace('page-','') : 'voter';
+  if (id === 'voter')  renderVoterPage();
+  if (id === 'result') renderResults();
+  updateTopBadge();
+  syncTimer();
+}
+
+// ════════════════════════════════════════════
+//  Navigation
+// ════════════════════════════════════════════
+function showPage(p) {
+  if (p === 'admin' && !isAdmin) { showAdminLogin(); return; }
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nb-' + p).classList.add('active');
+  if (p === 'voter')  renderVoterPage();
+  if (p === 'result') renderResults();
+  if (p === 'admin')  renderAdminPage();
+}
+
+// ════════════════════════════════════════════
+//  Voter Page
+// ════════════════════════════════════════════
+function renderVoterPage() {
+  const voted = localStorage.getItem(VOTED_KEY);
+  document.getElementById('vote-main-card').style.display = 'none';
+  document.getElementById('voted-card').style.display    = 'none';
+  document.getElementById('closed-card').style.display   = 'none';
+
+  if (voted) {
+    document.getElementById('voted-card').style.display = 'block';
+    document.getElementById('voted-choice-text').textContent = 'คุณเลือก: ' + voted;
+    return;
+  }
+  if (!voteData.isOpen && voteData.question && voteData.question !== 'ตั้งคำถามใน Admin') {
+    document.getElementById('closed-card').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('vote-main-card').style.display = 'block';
+  document.getElementById('question-display').textContent = voteData.question || 'รอการตั้งค่าจาก Admin';
+
+  const badge = document.getElementById('voter-status-badge');
+  const pill  = document.getElementById('timer-pill');
+  const btn   = document.getElementById('vote-btn');
+
+  if (voteData.isOpen) {
+    badge.className = 'badge badge-green';
+    badge.innerHTML = '<span class="dot pulse"></span>เปิดโหวตแล้ว';
+    pill.style.display = 'inline-flex';
+    btn.disabled = false;
+  } else {
+    badge.className = 'badge badge-red';
+    badge.innerHTML = '<span class="dot"></span>ยังไม่เปิดโหวต';
+    pill.style.display = 'none';
+    btn.disabled = true;
+  }
+
+  const container = document.getElementById('choices-container');
+  container.innerHTML = '';
+  (voteData.options || []).forEach(opt => {
+    const d = document.createElement('div');
+    d.className = 'choice-item' + (!voteData.isOpen ? ' disabled' : '');
+    d.innerHTML = '<div class="radio-circle"><div class="radio-dot"></div></div><span style="font-size:14px">' + escHtml(opt) + '</span>';
+    d.onclick = () => {
+      if (!voteData.isOpen) return;
+      document.querySelectorAll('.choice-item').forEach(x => x.classList.remove('selected'));
+      d.classList.add('selected');
+    };
+    container.appendChild(d);
+  });
+}
+
+async function submitVote() {
+  if (localStorage.getItem(VOTED_KEY)) { showToast('คุณโหวตไปแล้ว!'); return; }
+  if (!voteData.isOpen) { showToast('การโหวตยังไม่เปิด'); return; }
+  const sel = document.querySelector('.choice-item.selected span');
+  if (!sel) { showToast('กรุณาเลือกตัวเลือก'); return; }
+  const choice = sel.textContent;
+
+  try {
+    const votesRef = ref(db, 'vote/votes/' + encodeKey(choice));
+    const snap = await get(votesRef);
+    const cur  = snap.val() || 0;
+    await set(votesRef, cur + 1);
+    localStorage.setItem(VOTED_KEY, choice);
+    document.getElementById('vote-main-card').style.display = 'none';
+    document.getElementById('voted-card').style.display = 'block';
+    document.getElementById('voted-choice-text').textContent = 'คุณเลือก: ' + choice;
+    showToast('✓ โหวตสำเร็จ!');
+  } catch(e) {
+    showToast('❌ โหวตไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════
+//  Result Page
+// ════════════════════════════════════════════
+function renderResults() {
+  const votes = voteData.votes || {};
+  const opts  = voteData.options || [];
+  const total = opts.reduce((s, o) => s + (votes[encodeKey(o)] || 0), 0);
+  document.getElementById('stat-total').textContent = total;
+
+  let maxV = 0, leader = '—';
+  opts.forEach(o => {
+    const v = votes[encodeKey(o)] || 0;
+    if (v > maxV) { maxV = v; leader = o.split('—')[0].trim(); }
+  });
+  const leaderEl = document.getElementById('stat-leader');
+  leaderEl.textContent = total > 0 ? leader : '—';
+  leaderEl.style.fontSize = leader.length > 8 ? '11px' : '13px';
+
+  const lb = document.getElementById('result-live-badge');
+  if (voteData.isOpen) {
+    lb.className = 'badge badge-green';
+    lb.innerHTML = '<span class="dot pulse"></span>Live';
+  } else {
+    lb.className = 'badge badge-red';
+    lb.innerHTML = '<span class="dot"></span>ปิดแล้ว';
+  }
+
+  const bars   = document.getElementById('result-bars');
+  bars.innerHTML = '';
+  const noMsg  = document.getElementById('no-votes-msg');
+  noMsg.style.display = total === 0 ? 'block' : 'none';
+
+  opts.forEach(opt => {
+    const v   = votes[encodeKey(opt)] || 0;
+    const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+    const isL = v === maxV && v > 0;
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    row.innerHTML =
+      '<div class="result-meta">' +
+        '<span class="result-name">' + escHtml(opt) + (isL ? ' 🏆' : '') + '</span>' +
+        '<span class="result-count">' + v + ' คะแนน · ' + pct + '%</span>' +
+      '</div>' +
+      '<div class="bar-track"><div class="bar-fill' + (isL ? ' lead' : '') + '" style="width:' + pct + '%"></div></div>';
+    bars.appendChild(row);
+  });
+}
+
+// ════════════════════════════════════════════
+//  Admin Page
+// ════════════════════════════════════════════
+function renderAdminPage() {
+  document.getElementById('admin-question').value = voteData.question || '';
+  renderAdminOptions();
+  const dur = voteData.endTime
+    ? Math.max(1, Math.round((voteData.endTime - Date.now()) / 60000))
+    : 5;
+  document.getElementById('duration-slider').value = Math.min(60, dur);
+  document.getElementById('duration-val').textContent = document.getElementById('duration-slider').value;
+  document.getElementById('start-btn').style.display = voteData.isOpen ? 'none' : 'flex';
+  document.getElementById('stop-btn').style.display  = voteData.isOpen ? 'flex' : 'none';
+}
+
+function renderAdminOptions() {
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  (voteData.options || []).forEach((opt, i) => {
+    const d = document.createElement('div');
+    d.className = 'opt-tag';
+    d.innerHTML = '<span>' + escHtml(opt) + '</span><button onclick="removeOption(' + i + ')">×</button>';
+    list.appendChild(d);
+  });
+}
+
+function addOption() {
+  const inp = document.getElementById('new-option');
+  const val = inp.value.trim();
+  if (!val) return;
+  if ((voteData.options || []).includes(val)) { showToast('มีตัวเลือกนี้แล้ว'); return; }
+  voteData.options = [...(voteData.options || []), val];
+  inp.value = '';
+  renderAdminOptions();
+}
+
+function removeOption(i) {
+  voteData.options = voteData.options.filter((_, idx) => idx !== i);
+  renderAdminOptions();
+}
+
+async function applyAndStart() {
+  const q = document.getElementById('admin-question').value.trim();
+  if (!q) { showToast('กรุณาใส่คำถาม'); return; }
+  if ((voteData.options || []).length < 2) { showToast('ต้องมีอย่างน้อย 2 ตัวเลือก'); return; }
+  const mins = parseInt(document.getElementById('duration-slider').value);
+  const endTime = Date.now() + mins * 60 * 1000;
+  const initVotes = {};
+  voteData.options.forEach(o => { initVotes[encodeKey(o)] = 0; });
+  try {
+    await set(ref(db, 'vote'), {
+      question: q,
+      options:  voteData.options,
+      votes:    initVotes,
+      isOpen:   true,
+      endTime:  endTime,
+    });
+    setAdminMsg('✓ เปิดโหวตแล้ว! (' + mins + ' นาที)');
+    document.getElementById('start-btn').style.display = 'none';
+    document.getElementById('stop-btn').style.display = 'flex';
+  } catch(e) {
+    showToast('❌ บันทึกไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function stopVoting() {
+  try {
+    await update(ref(db, 'vote'), { isOpen: false });
+    clearInterval(timerInterval);
+    document.getElementById('timer-text').textContent = '--:--';
+    document.getElementById('stat-time').textContent = '--:--';
+    document.getElementById('timer-pill').style.display = 'none';
+    document.getElementById('start-btn').style.display = 'flex';
+    document.getElementById('stop-btn').style.display = 'none';
+    setAdminMsg('✓ ปิดโหวตแล้ว');
+  } catch(e) {
+    showToast('❌ ' + e.message);
+  }
+}
+
+async function resetAll() {
+  if (!confirm('รีเซ็ตคะแนนและล้างประวัติโหวตทั้งหมด?')) return;
+  try {
+    await set(ref(db, 'vote'), {
+      question: voteData.question || '',
+      options:  voteData.options  || [],
+      votes:    {},
+      isOpen:   false,
+      endTime:  null,
+    });
+    localStorage.removeItem(VOTED_KEY);
+    clearInterval(timerInterval);
+    document.getElementById('start-btn').style.display = 'flex';
+    document.getElementById('stop-btn').style.display = 'none';
+    setAdminMsg('✓ รีเซ็ตเรียบร้อยแล้ว');
+  } catch(e) {
+    showToast('❌ ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════
+//  Timer
+// ════════════════════════════════════════════
+function syncTimer() {
+  clearInterval(timerInterval);
+  if (voteData.isOpen && voteData.endTime) {
+    tick();
+    timerInterval = setInterval(tick, 500);
+  }
+}
+
+function tick() {
+  if (!voteData.isOpen) return;
+  const left = Math.max(0, voteData.endTime - Date.now());
+  const m = Math.floor(left / 60000);
+  const s = Math.floor((left % 60000) / 1000);
+  const txt = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  document.getElementById('timer-text').textContent = txt;
+  document.getElementById('stat-time').textContent  = txt;
+  const pill = document.getElementById('timer-pill');
+  pill.style.display = 'inline-flex';
+  pill.className = left < 60000 ? 'timer-pill urgent' : 'timer-pill';
+  if (left <= 0) {
+    stopVoting();
+    showToast('⏱ หมดเวลาโหวตแล้ว!');
+  }
+}
+
+// ════════════════════════════════════════════
+//  Admin Auth (password in-code)
+// ════════════════════════════════════════════
+function showAdminLogin() {
+  if (isAdmin) { showPage('admin'); return; }
+  document.getElementById('admin-modal').classList.add('show');
+  document.getElementById('admin-password-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
+}
+
+function closeAdminModal() {
+  document.getElementById('admin-modal').classList.remove('show');
+}
+
+function checkAdminPassword() {
+  const pw = document.getElementById('admin-password-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    isAdmin = true;
+    sessionStorage.setItem(ADMIN_KEY, '1');
+    closeAdminModal();
+    applyAdminUI();
+    showPage('admin');
+    showToast('✓ เข้าสู่ระบบ Admin แล้ว');
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('admin-password-input').focus();
+  }
+}
+
+function adminLogout() {
+  isAdmin = false;
+  sessionStorage.removeItem(ADMIN_KEY);
+  applyAdminUI();
+  showPage('voter');
+  showToast('ออกจากระบบ Admin แล้ว');
+}
+
+function applyAdminUI() {
+  document.getElementById('nb-admin').style.display     = isAdmin ? 'block' : 'none';
+  document.getElementById('admin-login-btn').style.display  = isAdmin ? 'none' : 'flex';
+  document.getElementById('admin-logout-btn').style.display = isAdmin ? 'flex' : 'none';
+}
+
+// ════════════════════════════════════════════
+//  Top Badge
+// ════════════════════════════════════════════
+function updateTopBadge() {
+  const b = document.getElementById('top-badge');
+  if (voteData.isOpen) {
+    b.className = 'badge badge-green';
+    b.innerHTML = '<span class="dot pulse"></span>กำลังโหวต';
+  } else if (voteData.question && voteData.question !== 'ตั้งคำถามใน Admin') {
+    b.className = 'badge badge-red';
+    b.innerHTML = '<span class="dot"></span>ปิดโหวต';
+  } else {
+    b.className = 'badge badge-amber';
+    b.innerHTML = '<span class="dot"></span>รอตั้งค่า';
+  }
+}
+
+// ════════════════════════════════════════════
+//  Helpers
+// ════════════════════════════════════════════
+function encodeKey(str) {
+  return str.replace(/[.#$[\]/]/g, '_');
+}
+function escHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function setAdminMsg(msg) {
+  const el = document.getElementById('admin-msg');
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+// ── Start ──
+initFirebase();
+</script>
+</body>
+</html>
