@@ -361,9 +361,12 @@
       </div>
 
       <div class="card">
-        <div class="section-head">รหัสผ่าน Admin</div>
-        <div class="info-box">เปลี่ยนรหัสผ่านได้ในโค้ดบรรทัด <code>ADMIN_PASSWORD</code></div>
-        <div class="warn-box">⚠️ ระบบนี้เป็น HTML ไฟล์เดียว รหัสผ่านอยู่ในโค้ด — เหมาะสำหรับงาน Event เท่านั้น</div>
+        <div class="section-head">ป้องกันโหวตซ้ำ</div>
+        <div class="info-box">
+          Device ID ของแต่ละเครื่องถูกบันทึกใน Firebase — ถ้าโหวตแล้วกลับมาโหวตอีกครั้งในเครื่องเดิม ระบบจะบล็อกทันทีแม้ล้าง cache หรือเปิด Incognito ก็ตาม<br><br>
+          <strong>Device ID ของคุณ:</strong> <code id="device-id-display" style="font-size:11px;background:var(--accent-light);padding:2px 6px;border-radius:4px"></code>
+        </div>
+        <div class="warn-box">⚠️ รหัสผ่าน Admin อยู่ในโค้ด ค้นหา <code>ADMIN_PASSWORD</code> เพื่อเปลี่ยน</div>
         <button class="btn btn-danger" style="font-size:13px" onclick="adminLogout()">ออกจากระบบ Admin</button>
       </div>
     </div>
@@ -395,7 +398,7 @@
 <!-- ── Firebase SDK ── -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, onValue, set, get, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ════════════════════════════════════════════
 //  🔑 Firebase Config
@@ -423,7 +426,6 @@ const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
 // ── Keys ──
-const VOTED_KEY  = 'sap_vote_record_v1';
 const DEVICE_KEY = 'sap_vote_device_v1';
 const ADMIN_KEY  = 'sap_vote_admin_v1';
 
@@ -461,15 +463,15 @@ function initFirebase() {
     const data = snapshot.val();
     if (data) {
       voteData = {
-        question: data.question || '',
-        options:  data.options  || [],
-        votes:    data.votes    || {},
-        isOpen:   data.isOpen   || false,
-        endTime:  data.endTime  || null,
+        question:      data.question      || '',
+        options:       data.options       || [],
+        votes:         data.votes         || {},
+        isOpen:        data.isOpen        || false,
+        endTime:       data.endTime       || null,
+        voted_devices: data.voted_devices || {},
       };
     } else {
-      // first time — seed empty data
-      voteData = { question: 'ตั้งคำถามใน Admin', options: [], votes: {}, isOpen: false, endTime: null };
+      voteData = { question: 'ตั้งคำถามใน Admin', options: [], votes: {}, isOpen: false, endTime: null, voted_devices: {} };
     }
     onDataUpdated();
   }, (err) => {
@@ -509,7 +511,7 @@ function showPage(p) {
 //  Voter Page
 // ════════════════════════════════════════════
 function renderVoterPage() {
-  const voted = localStorage.getItem(VOTED_KEY);
+  const voted = voteData.voted_devices && voteData.voted_devices[deviceId];
   document.getElementById('vote-main-card').style.display = 'none';
   document.getElementById('voted-card').style.display    = 'none';
   document.getElementById('closed-card').style.display   = 'none';
@@ -559,21 +561,22 @@ function renderVoterPage() {
 }
 
 async function submitVote() {
-  if (localStorage.getItem(VOTED_KEY)) { showToast('คุณโหวตไปแล้ว!'); return; }
   if (!voteData.isOpen) { showToast('การโหวตยังไม่เปิด'); return; }
+
+  // เช็คใน Firebase ว่า Device นี้โหวตไปแล้วหรือยัง
+  const deviceRef = ref(db, 'vote/voted_devices/' + deviceId);
+  const deviceSnap = await get(deviceRef);
+  if (deviceSnap.val()) { showToast('คุณโหวตไปแล้ว!'); return; }
+
   const sel = document.querySelector('.choice-item.selected span');
   if (!sel) { showToast('กรุณาเลือกตัวเลือก'); return; }
   const choice = sel.textContent;
 
   try {
+    // บันทึกทั้ง vote count และ device ใน transaction เดียว
     const votesRef = ref(db, 'vote/votes/' + encodeKey(choice));
-    const snap = await get(votesRef);
-    const cur  = snap.val() || 0;
-    await set(votesRef, cur + 1);
-    localStorage.setItem(VOTED_KEY, choice);
-    document.getElementById('vote-main-card').style.display = 'none';
-    document.getElementById('voted-card').style.display = 'block';
-    document.getElementById('voted-choice-text').textContent = 'คุณเลือก: ' + choice;
+    await runTransaction(votesRef, (current) => (current || 0) + 1);
+    await set(deviceRef, choice); // เก็บ device → ตัวเลือกที่โหวต
     showToast('✓ โหวตสำเร็จ!');
   } catch(e) {
     showToast('❌ โหวตไม่สำเร็จ: ' + e.message);
@@ -679,11 +682,12 @@ async function applyAndStart() {
   voteData.options.forEach(o => { initVotes[encodeKey(o)] = 0; });
   try {
     await set(ref(db, 'vote'), {
-      question: q,
-      options:  voteData.options,
-      votes:    initVotes,
-      isOpen:   true,
-      endTime:  endTime,
+      question:      q,
+      options:       voteData.options,
+      votes:         initVotes,
+      isOpen:        true,
+      endTime:       endTime,
+      voted_devices: {},
     });
     setAdminMsg('✓ เปิดโหวตแล้ว! (' + mins + ' นาที)');
     document.getElementById('start-btn').style.display = 'none';
@@ -712,13 +716,13 @@ async function resetAll() {
   if (!confirm('รีเซ็ตคะแนนและล้างประวัติโหวตทั้งหมด?')) return;
   try {
     await set(ref(db, 'vote'), {
-      question: voteData.question || '',
-      options:  voteData.options  || [],
-      votes:    {},
-      isOpen:   false,
-      endTime:  null,
+      question:      voteData.question || '',
+      options:       voteData.options  || [],
+      votes:         {},
+      isOpen:        false,
+      endTime:       null,
+      voted_devices: {},
     });
-    localStorage.removeItem(VOTED_KEY);
     clearInterval(timerInterval);
     document.getElementById('start-btn').style.display = 'flex';
     document.getElementById('stop-btn').style.display = 'none';
@@ -798,6 +802,8 @@ function applyAdminUI() {
   document.getElementById('nb-admin').style.display     = isAdmin ? 'block' : 'none';
   document.getElementById('admin-login-btn').style.display  = isAdmin ? 'none' : 'flex';
   document.getElementById('admin-logout-btn').style.display = isAdmin ? 'flex' : 'none';
+  const el = document.getElementById('device-id-display');
+  if (el) el.textContent = deviceId;
 }
 
 // ════════════════════════════════════════════
